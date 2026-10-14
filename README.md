@@ -110,7 +110,8 @@ macOS 上の Docker Desktop / OrbStack では使えない。Linux サーバー�
 ## 再現手順（最短）
 
 ```bash
-cd codes/sql-code
+git clone https://github.com/ChisouPublishing/sql-code.git
+cd sql-code
 make up            # PostgreSQL 18 起動（初回はimage取得）
 make init-medium   # schema〜small〜medium を sakura_market に投入（約30秒）
 make verify        # 整合性チェック（最後の summary が ALL OK になること）
@@ -210,7 +211,7 @@ make monitor-down
 ## pgvector（第15章のみ）
 
 本書のDB（`postgres:18`）には vector 拡張が無い。pgvector入りのイメージで、別の一時コンテナを立てて試す
-（名前・ポート・ボリュームを本書のDBと別にする。共有のDBを止めない）。`codes/sql-code` のフォルダで実行する。
+（名前・ポート・ボリュームを本書のDBと別にする。共有のDBを止めない）。クローンした `sql-code` の直下で実行する。
 
 ```bash
 docker run -d --name sakura_pgvector_tmp \

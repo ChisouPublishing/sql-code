@@ -1,13 +1,7 @@
-.DS_Store
-.history/
-Claude outputs/
-backups/
+# ローカルDB実体・ログは版管理しない
+pgdata/
+bench/log.txt
+evidence/
+tools/
 backup/
-*/backup/*
-x-pdf/
-x-books/
-codes/*
-!codes/sql-code/
-node_modules/
-.zenn/
-*.zip
+.DS_Store

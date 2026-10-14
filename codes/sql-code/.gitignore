@@ -1,6 +1,0 @@
-# ローカルDB実体・ログは版管理しない
-pgdata/
-bench/log.txt
-evidence/
-tools/
-backup/
