@@ -1,0 +1,102 @@
+services:
+  postgres:
+    image: postgres:18
+    container_name: sakura_market_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: sakura
+      POSTGRES_PASSWORD: sakura_dev
+      POSTGRES_DB: sakura_market
+      TZ: Asia/Tokyo
+      PGTZ: Asia/Tokyo
+    ports:
+      - "5432:5432"
+    volumes:
+      # PG18は /var/lib/postgresql にマウントする（.../data 直下は不可）。
+      # ./init は自動実行させない（make init-small で明示投入）。必要なら
+      # - ./init:/docker-entrypoint-initdb.d:ro を足すが、その場合はmake投入と二重になる。
+      - ./pgdata:/var/lib/postgresql
+    command:
+      - "postgres"
+      # io_method: 既定は worker（PG18の非同期I/O・第12章）。
+      # io_uring は Linux カーネルの機能で、macOS 上の Docker Desktop / OrbStack では使えない。
+      # Linux サーバーで再現するときだけ worker → io_uring に変えてよい。
+      - "-c"
+      - "io_method=worker"
+      - "-c"
+      - "log_min_duration_statement=200"
+      - "-c"
+      - "log_line_prefix=%m [%p] %q%u@%d "
+      - "-c"
+      - "shared_buffers=256MB"
+      - "-c"
+      - "work_mem=16MB"
+      - "-c"
+      - "shared_preload_libraries=pg_stat_statements"
+      - "-c"
+      - "pg_stat_statements.max=10000"
+      - "-c"
+      - "pg_stat_statements.track=all"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sakura -d sakura_market"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # 接続プール PgBouncer（第13章）。普段は起動しない（profile: pool）。
+  # 起動: docker compose --profile pool up -d pgbouncer   （make pool-up）
+  # 接続: host=localhost port=6432（コンテナ間は host=sakura_pgbouncer port=5432）
+  # 開発用の設定: 認証は平文パスワード（AUTH_TYPE=plain）。本番では scram-sha-256 と auth_query を使う。
+  pgbouncer:
+    image: edoburu/pgbouncer:v1.26.0-p0
+    container_name: sakura_pgbouncer
+    profiles: ["pool"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DB_HOST: postgres
+      DB_PORT: "5432"
+      DB_USER: sakura
+      DB_PASSWORD: sakura_dev
+      AUTH_TYPE: plain
+      # transaction: トランザクションの間だけサーバー接続を貸す（SET や一時表は持ち越されない）
+      POOL_MODE: transaction
+      # サーバー（PostgreSQL）への接続は DB×ユーザーごとに最大20本
+      DEFAULT_POOL_SIZE: "20"
+      # アプリ（クライアント）からは1000本まで受け付ける（max_connections=100 を超えてよい）
+      MAX_CLIENT_CONN: "1000"
+      # pgbench の -M prepared を transaction モードで使うための設定（PgBouncer 1.21+）
+      MAX_PREPARED_STATEMENTS: "100"
+      LISTEN_PORT: "5432"
+    ports:
+      - "6432:5432"
+
+  # 監視画面 pgAdmin 4（第11・13・14章「画面で確かめる」）。普段は起動しない（profile: monitor）。
+  # 起動: docker compose --profile monitor up -d pgadmin   （make monitor-up）
+  # 画面: http://localhost:5050 （ローカルの開発用。ログイン画面なしのデスクトップモード）
+  # サーバー登録は pgadmin/servers.json で自動（sakura_market と sakura_xl）。パスワードは pgadmin/pgpass。
+  # 開発用の資格情報なので、外部に公開するマシンでは使わない（本番では SERVER_MODE と強いパスワードにする）。
+  pgadmin:
+    image: dpage/pgadmin4:9.18
+    container_name: sakura_pgadmin
+    profiles: ["monitor"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@example.com
+      PGADMIN_DEFAULT_PASSWORD: sakura_dev
+      # デスクトップモード（ログイン画面とマスターパスワードを省く。ローカル専用）
+      PGADMIN_CONFIG_SERVER_MODE: "False"
+      PGADMIN_CONFIG_MASTER_PASSWORD_REQUIRED: "False"
+      # 外部（pgAdmin のサイト）へ更新の確認をしない
+      PGADMIN_CONFIG_UPGRADE_CHECK_ENABLED: "False"
+      PGADMIN_SERVER_JSON_FILE: /pgadmin4/servers.json
+    # pgpass は 600 でないと libpq が読まないので、コンテナの中へ写してから起動する
+    entrypoint: ["/bin/sh", "-c", "cp /pgadmin4/pgpass.src /var/lib/pgadmin/pgpass && chmod 600 /var/lib/pgadmin/pgpass && exec /entrypoint.sh"]
+    volumes:
+      - ./pgadmin/servers.json:/pgadmin4/servers.json:ro
+      - ./pgadmin/pgpass:/pgadmin4/pgpass.src:ro
+    ports:
+      - "127.0.0.1:5050:80"

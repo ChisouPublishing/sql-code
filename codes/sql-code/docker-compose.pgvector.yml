@@ -1,0 +1,5 @@
+# 第15章 pgvector 用の差分上書き。
+# 使い方: docker compose -f docker-compose.yml -f docker-compose.pgvector.yml up -d
+services:
+  postgres:
+    image: pgvector/pgvector:pg18

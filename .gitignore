@@ -1,0 +1,13 @@
+.DS_Store
+.history/
+Claude outputs/
+backups/
+backup/
+*/backup/*
+x-pdf/
+x-books/
+codes/*
+!codes/sql-code/
+node_modules/
+.zenn/
+*.zip

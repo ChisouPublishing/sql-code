@@ -1,0 +1,26 @@
+{
+  "Servers": {
+    "1": {
+      "Name": "sakura_market（small＋medium）",
+      "Group": "Sakura Market",
+      "Host": "postgres",
+      "Port": 5432,
+      "MaintenanceDB": "sakura_market",
+      "Username": "sakura",
+      "PassFile": "/var/lib/pgadmin/pgpass",
+      "SSLMode": "prefer",
+      "Comment": "第4〜9章・第15章（compose の postgres サービス）"
+    },
+    "2": {
+      "Name": "sakura_xl（性能比較用）",
+      "Group": "Sakura Market",
+      "Host": "postgres",
+      "Port": 5432,
+      "MaintenanceDB": "sakura_xl",
+      "Username": "sakura",
+      "PassFile": "/var/lib/pgadmin/pgpass",
+      "SSLMode": "prefer",
+      "Comment": "第10〜14章（1000万件級。同じ PostgreSQL の別DB）"
+    }
+  }
+}
