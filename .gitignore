@@ -5,3 +5,6 @@ evidence/
 tools/
 backup/
 .DS_Store
+CHANGELOG.md
+VALIDATION.md
+VERSION
